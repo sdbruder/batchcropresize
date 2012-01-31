@@ -1,0 +1,95 @@
+#!/usr/bin/python
+
+import os
+import sys
+import PIL
+import Image
+import re
+import argparse
+
+
+def cropresize(filename):
+    global args, targetSize, targetRatio, proc_files
+    madeit = False
+    p, fn = os.path.split(filename)
+    try:
+        im = Image.open(filename)
+    except IOError:
+        print "error: Cannot open %s" % filename
+        im = None
+    if im:
+        print filename, im.size
+        imRatio = im.size[0] / float(im.size[1])
+        if imRatio < targetRatio:
+            resize = targetSize[0], int(targetSize[0] / imRatio)
+            upper = int((resize[1] - targetSize[1])/2)
+            cropBox = [0, upper, targetSize[0], upper + targetSize[1]]
+        else:
+            resize = int(targetSize[1] * imRatio), targetSize[1]
+            left = int((resize[0] - targetSize[0])/2)
+            cropBox = [left, 0, left + targetSize[0], targetSize[1]]
+
+        if not args.dry:
+            if im.size[0] > targetSize[0] and im.size[1] > targetSize[1]:
+                im.thumbnail(resize, Image.ANTIALIAS)
+            else:
+                im = im.resize(resize, Image.ANTIALIAS)
+            region = im.crop(cropBox)
+            try:
+                if args.inplace:
+                    savename = os.path.join(p,fn)
+                else:
+                    savename = os.path.join(p,'re_'+fn)
+                del im # Im more confortable with saving it with the same name without the first object using the same file
+                region.save(savename)
+                proc_files += 1
+                madeit = True
+            except IOError:
+                print "error: Cannot save %s" % os.path.join(p,'resized_'+fn)
+        else:
+            proc_files += 1 # dry run, faking it.
+            madeit = True
+
+    return madeit
+
+
+
+
+def process_files(name):
+    global args, proc_files
+    if os.path.isfile(name):
+        cropresize(name)
+    elif os.path.isdir(name) and args.recursive:
+        for n in os.listdir(name):
+            process_files(os.path.join(name,n))
+
+
+
+
+cmdline = argparse.ArgumentParser(description="Batch resize and crop")
+
+cmdline.add_argument('--resolution', '-r', action="store",      dest='resolution', metavar="9999x999")
+cmdline.add_argument('--recursive',  '-R', action="store_true", dest='recursive', default=False)
+cmdline.add_argument('--inplace',    '-i', action="store_true", dest='inplace',   default=False)
+cmdline.add_argument('--dry',        '-d', action="store_true", dest='dry',       default=False)
+cmdline.add_argument('files',              action="append",     nargs="+")
+
+args = cmdline.parse_args()
+
+print "%s: " % os.path.basename(sys.argv[0])
+
+targetSize_re = re.compile(r"\d*x\d*", re.IGNORECASE)
+if targetSize_re.match(args.resolution):
+    targetSize = [int(n) for n in args.resolution.lower().split('x')]
+    targetRatio = targetSize[0] / float(targetSize[1])
+    proc_files = 0
+    print "target size set to", targetSize
+else:
+    print "%s: error: %s is not a valid resolution" % (os.path.basename(sys.argv[0]), args.resolution)
+    exit(1)
+
+filelist = args.files[0]
+for f in filelist:
+    process_files(f)
+
+print "processed %i files" % proc_files

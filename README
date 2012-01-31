@@ -1,0 +1,28 @@
+batchcropresize v 1.0
+---------------------
+
+batchcropresize is a small python utility made to batch crop & resize a group 
+of image files. Ive wrote it to batch process a series of images to put in a 
+crappy and slow digital photo frame.
+
+Originally written in mac os with python and PIL, it should work with Linux 
+and Windows with the correct python and PIL, but Ive not tested it so far 
+outside Mac OS Lion.
+
+
+usage: batchcropresize [-h] [--resolution 9999x999] [--recursive] [--inplace]
+                       [--dry]
+                       files [files ...]
+
+Batch resize and crop
+
+positional arguments:
+  files
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --resolution 9999x999, -r 9999x999
+  --recursive, -R
+  --inplace, -i
+  --dry, -d
+
